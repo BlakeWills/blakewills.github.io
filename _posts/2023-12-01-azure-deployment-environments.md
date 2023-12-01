@@ -2,7 +2,7 @@
 layout: post
 title:  "Azure Deployment Environments"
 date:   2023-12-01 21:00:00 +0000
-categories: azure devex
+tags: azure devex
 ---
 
 If I had a pound for every minute I've spent setting up my local development environments, I probably wouldn't be writing this blog post. Modernisation of the dev stack and usage of containers and tools like Docker Desktop have helped us take a big step forward, but cloud systems still use resources that can't easily be run within a local container; just take Azure KeyVault and ServiceBus for example.
@@ -10,6 +10,17 @@ If I had a pound for every minute I've spent setting up my local development env
 Microsoft has introduced `Azure Deployment Environments` as their solution to this problem, the idea being your platform engineering team curates a set of infrastructure templates into a catalog, and developers self-serve from that catalog as and when they need a new environment.
 
 In this post we'll walk through the setup needed to be able to deploy an environment.
+
+- [Create a Catalog](#create-a-catalog)
+- [Azure DevCenter](#azure-devcenter)
+  - [Add a Catalog](#add-a-catalog)
+  - [Create the Environment Types](#create-the-environment-types)
+  - [Create a Project](#create-a-project)
+  - [Configure the Project](#configure-the-project)
+    - [Adding project team members](#adding-project-team-members)
+- [Developer Self-Service](#developer-self-service)
+- [Environment Management](#environment-management)
+- [Closing](#closing)
 
 ## Create a Catalog
 
@@ -113,11 +124,11 @@ parameters:
 
 **Note:** DevCenter is free, you only pay for the resources it deploys as part of your environment.
 
-### Create a Catalog
+### Add a Catalog
 
-Before we create a catalog we need to assign a `system-managed identity` and then add the service principal as a user to your Azure DevOps tenant, which lets DevCenter access the repository.
+Before we add a catalog we need to assign a `system-managed identity` and then add the service principal as a user to your Azure DevOps tenant, which lets DevCenter access the repository.
 
-Once that's setup, we can create the catalog:
+Once that's setup, we can add our catalog:
 
 ![Add Catalog](/assets/img/posts/2023-12-01-azure-deployment-environments/AddCatalog.png)
 
@@ -168,7 +179,7 @@ The resources will be deployed to a resource group named `team-[projectName]-[en
 
 ![Deployed Resource Group](/assets/img/posts/2023-12-01-azure-deployment-environments/DeployedResources.png)
 
-### Environment Management
+## Environment Management
 
 Self-serve environments are a great boon to productivity, but can cause costs to rise. Whilst we can centrally manage the list of deployed environments from the `Environments` tab within the project, it only gives you a link to the resource group to view the costs.
 
