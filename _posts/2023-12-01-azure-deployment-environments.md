@@ -96,7 +96,7 @@ Currently only `ARM templates` are supported (🤮), but Terraform, Pulumi, and 
 }
 ```
 
-Now the manifest file, which is fairly self-explanatory:
+Now the manifest file, this needs to be called `environment.yaml` but the contents is fairly self-explanatory:
 
 ```yaml
 name: WebApp
@@ -119,6 +119,14 @@ parameters:
   required: true
 ```
 
+The key bits are:
+
+- `name` - needs to be unique and gets displayed in the Developer Portal.
+- `templatePath` - relative path to the ARM template.
+- `parameters` - these reference the `ARM` template parameters, unfortunately you can't use `ARM` expressions for things like the `default` value, but you can limit `allowed` values for things like SKUs.
+
+The [documentation](https://learn.microsoft.com/en-us/azure/deployment-environments/concept-environment-yaml) does a pretty good job of explaining the manifest file.
+
 ## Azure DevCenter
 
 `Azure DevCenter` is the control plane that allows platform engineers to define project teams, catalogs and environments. It's also the control plane for `Azure DevBox`, which we'll talk about in a future post. You don't need anything special to deploy a `DevCenter`, just the usual resource group, location, and name:
@@ -139,7 +147,7 @@ Once that's setup, we can add our catalog:
 
 `Environment Types` are just the names of the environments developers can deploy to, in this case I'll use `development`. You can also define tags that get added to any deployed environment resources, don't worry about adding tags for team or project-specific values, we can do that at the project level next.
 
-I like to add an `environment` tag to help with figuring out where my money is being ~~burnt~~ well-spent.
+I like to add an `environment` tag to help figure out where my money is being ~~burnt~~ well-spent.
 
 ![Add Environment Type](/assets/img/posts/2023-12-01-azure-deployment-environments/CreateEnvironmentType.png)
 
@@ -201,6 +209,6 @@ I'd love to see an actual cost value here, as well as the deployment date so we 
 
 I can see deployment environments being a great tool to fill the gaps when resources can't be run in a local container. If you can run your entire environment locally using docker then this isn't going to add much value (I know, I know, says the guy who just used an app service as an example). If you don't want to jump right in a great starter use-case could be self-serve provisioning of ServiceBus queues and topics for event-driven systems, which I know from experience can be a pain for local debugging.
 
-There are a few "gotchas" to be aware of: the design of DevCenter and the catalog really lends itself to having one team manage the infrastructure and another develop the application. This becomes really evident when you have a developer working on a feature that requires some infrastructure changes - there isn't really a workflow to have the developer update the template for their own environment without merging the changes into `main`. The way around this is to give them `Contributor` access as part of the `Environment Creator Roles` so they can reconfigure and deploy new resources to their own environment outside of the template. That doesn't mean you need to give them total free rein though, you can still reject certain configurations through `Azure Policy`
+There are a few "gotchas" to be aware of: the design of DevCenter and the catalog really lends itself to having one team manage the infrastructure and another develop the application. This becomes really evident when you have a developer working on a feature that requires some infrastructure changes - there isn't really a workflow to have the developer update the template for their own environment without merging the changes into `main`. The way around this is to give them `Contributor` access as part of the `Environment Creator Roles` so they can reconfigure and deploy new resources to their own environment outside of the template. That doesn't mean you need to give them total free rein though, you can still reject certain configurations through `Azure Policy`.
 
 We've mentioned it once but it's worth mentioning again: cost management. There are a few controls that I'd like to see that are missing, such as enforcing deletion after a set time period and limiting the number of environments a developer can create. I'd strongly recommend taking advantage of the "allowed values" parameter within the manifest to lock down which SKUs your developers are allowed to deploy; premium SKUs are great for production but not for local testing. There's a similar message for how you define your infrastructure templates, in an ideal world you would use the same templates for local environments as you would for production, but if your current templates deploy the full networking and observability stack, you might want to break those apart. 
