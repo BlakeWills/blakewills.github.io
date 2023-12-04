@@ -4,6 +4,8 @@ title:  "Azure Deployment Environments"
 date:   2023-12-01 21:00:00 +0000
 tags: azure devex
 classes: wide
+header:
+  og_image: /assets/img/posts/2023-12-01-azure-deployment-environments/DeployedEnvironment.png
 ---
 
 If I had a pound for every minute I've spent setting up my local development environments, I probably wouldn't be writing this blog post. Containers and tools like Docker Desktop have helped us take a big step forward, but cloud systems still use resources that can't easily be run within a local container; just take Azure KeyVault and ServiceBus for example.
