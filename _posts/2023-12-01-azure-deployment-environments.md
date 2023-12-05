@@ -31,7 +31,7 @@ In this post we'll walk through the setup needed to be able to deploy an environ
 
 A catalog is a git repository containing environment definitions that is hosted in `Azure DevOps` or `Github`. An environment definition contains an infrastructure template and a manifest file.
 
-Currently only `ARM templates` are supported (🤮), but Terraform, Pulumi, and Bicep support is coming soon. To keep it simple we'll use a template that deploys a Web App to an App Service Plan:
+Currently only `ARM templates` are supported (🤮), but Terraform support is in private preview, and Pulumi and Bicep support is coming soon. To keep it simple we'll use a template that deploys a Web App to an App Service Plan:
 
 ```json
 {
@@ -193,7 +193,7 @@ Login to the [Microsoft developer portal](https://devportal.microsoft.com/), cli
 
 ![Microsoft Developer Portal](/assets/img/posts/2023-12-01-azure-deployment-environments/DevPortal.png)
 
-The resources will be deployed to a resource group named `team-[projectName]-[environmentName]` and you'll be able to access them from the developer portal. We also get options to delete the environment, as well as an option to schedule deletion for a point in the future (this feature is currently broken 😞).
+The resources will be deployed to a resource group named `team-[projectName]-[environmentName]` and you'll be able to access them from the developer portal. We also get options to delete the environment, as well as an option to schedule deletion for a point in the future.
 
 ![Microsoft Developer Portal showing Deployment Environment](/assets/img/posts/2023-12-01-azure-deployment-environments/DeployedEnvironment.png)
 
