@@ -1,6 +1,6 @@
 ---
 layout: single
-title:  "Building for DevEx"
+title:  "How to improve DevEx - Lessons from SRE"
 date:   2023-12-07 20:30:00 +0000
 tags: devex
 classes: wide
@@ -8,62 +8,79 @@ header:
   og_image: /assets/img/posts/2023-12-01-azure-deployment-environments/DeployedEnvironment.png
 ---
 
-I've been thinking about Developer Experience a lot recently, and something that sticks out is the overlap with SRE. As an SRE I'd work across the engineering organisation, and to get buy-in from the engineers I'd have to show value. One of the easiest ways to do that was by making their lives easier, which is the essence of developer experience. A perfect example is SRE teams improving observability to make handling incidents a breeze (well, that's the theory anyway...).
-As I look into some of the new developer productivity tooling being released, I just can't help but think about the lessons I've learned as an SRE.
+I've been thinking about Developer Experience a lot recently, and something that really sticks out is the overlap with SRE. Like many companies, our SRE team was a finite resource, so we worked across the engineering organization. To get buy-in from other teams we had to demonstrate value, and by far the easiest way to do this was by making developers' lives easier, which is the essence of developer experience. You don't have to look much beyond the observability stack to see this, every improvement made it easier for engineers to respond to incidents (well, that was the theory anyway).
 
-## What is Developer Experience?
+What is Developer Experience?
+For me, developer experience is about reducing friction and making it easy to get stuff done. By “get stuff done”, I mean how hard is it to change the system? Does it take a long time? Do changes fail often? Do people enjoy working on the system? The DORA metrics provide a good way of measuring the first three. You'll have to talk to people for the latter, I'm afraid.
 
-For me, developer experience is about reducing friction and making it easy to get stuff done. By "get stuff done", I mean how hard is it to change the system? Does it take a long time? Do changes fail often? Do people enjoy working on the system? The DORA metrics provide a good way of measuring the first three. You'll have to talk to people for the latter I'm afraid. 
-If the answers to the above are yes (or no for the last one), then the chances are your developer experience isn't great, and that's not just bad for the developers. Bad developer experience for software companies is like having a factory with old, broken machinery. You're not delivering anywhere near as fast as you could be, and your developers are getting hurt.
+If the answers to those questions for your organization are yes (or no for the last one), then the chances are your developer experience isn't great.
 
-The good news is just like that factory can upgrade its broken-down machines, you can take steps to improve your developer experience. Yes, investing in better tooling will certainly help, but there are lessons we can take from SRE and software development in general, that go a long way to making your developer's lives easier.
+Our industry loves a manufacturing metaphor, and in this case, a bad developer experience is like having a factory with outdated machinery (tools), unclear instructions (documentation), and inefficient processes (I'm sorry, I tried).
 
-## Keep it Simple
-Unequivocally, the first lesson has to be "keep it simple". I apologise now if you were expecting some grand revelation, but it's something we've all been guilty of forgetting at one point or another.
+The good news is, just like that factory can upgrade its broken-down machines  (OK, I'll stop), you can also take steps to improve your developer experience.
 
-Simple systems are simple to understand, simple to run, simple to debug, and usually simple to maintain. They're predictable, and one of the biggest frustrations and "friction points" as an engineer is working on a system that's so hard to reason about, it behaves unpredictably when you try to change it. 
+Keep it Simple
+This isn't specific to SRE, but unequivocally, the first point has to be “keep it simple”. I apologize now if you were expecting some grand revelation, but it's such a crucial aspect in improving developer experience and productivity.
 
-KISS (keep it simple, stupid) needs to be applied at every layer, too. It might not sound exciting but simple architecture, simple (boring) code, and simple release processes are usually traits of a system that's a joy to work with, and great for developer experience. That's why we all love working on greenfield systems.
+Simple systems are simple to understand, simple to run, simple to debug, and simple to maintain. They're predictable, and one of the biggest frustrations and “friction points” as an engineer is working on a system that's so hard to reason about, it behaves unpredictably when you try to change it. It works the other way around too, sticking to the “predictable” way of doing things and avoiding the company/project specific customizations doesn't just make a simpler system, it makes developer onboarding so much easier. 
 
-At this point in the post, I was going to list some practical ways you can keep things simple, but people have written entire books on the subject and at the end of the day, all I'm describing here is technical debt. At the risk of stating the obvious (and having a "Will Buxton moment" for the F1 fans), if you want to improve your developer experience the place to start is paying off your technical debt, and that doesn't mean your SonarCloud warnings either; although they are usually a smell.
+It's not just the code that needs to be simple either, it's the whole stack. Sure it's not exciting, but simple architecture, simple (boring) code, and simple release processes all add up to a system that's a pleasure to work with, and great for developer experience. That's one of the reasons we all love working on greenfield systems.
 
-## Observability
-Another trait of systems with good developer experience is that they're easily "debuggable". This is different from having good monitoring; monitoring tells you that something is broken, and observability tells you why.
+I was thinking about listing some practical ways you can keep things simple, but people have written entire books on the subject and at the end of the day, all I'm describing here is technical debt. At the risk of stating the obvious (and having a “Will Buxton moment” for the F1 fans), if you want to improve your developer experience, undoubtedly the place to start is paying off your technical debt. That doesn't mean your SonarCloud warnings either; I mean your real technical debt. 
 
-If we think about API response times, monitoring alerts you when it's high, and observability tells you that it's because one of the upstream services has a problem with its database, caused by yet another system hammering its API.
+I'd go as far as to say that for DevEx teams to have a serious impact, their primary focus should be technical debt. They should have a roadmap for strategically tackling complex and outdated parts of the architecture, and the parts of the system that aren't receptive to change. 
 
-Not only does this help reduce the time to recover from incidents, which is great for DevEx, but there are other benefits, like helping new team members understand how the system fits together. Instead of cloning all the repos and scanning the code, which can take weeks to build up an accurate mental model, they can pull up a trace and understand which services are involved, the order they get called, and which ones are usually the bottleneck in mere minutes.
+Observability
+We mentioned this earlier, but another trait of systems with good developer experience is that they're easily “debuggable”. It's obvious that incidents and outages don't make for happy customers, but having the tools and data to resolve them quickly is the difference between happy and angry engineers.
 
-This is an area where good tooling helps. Functionally, you want something that can tie all your telemetry together to tell the story of what went wrong. Non-functionally, you need something fast and reliable, which is where the self-hosted solutions fail without a dedicated team.
+Notice how I didn't use the word “monitoring” here? That's because monitoring tells you that something is broken, it doesn't tell you why. For that, your system needs to produce rich telemetry data in the form of events, and to send those events to a tool capable of presenting, analysing, and aggregating them into useful insights. 
 
-## Automation, Deployments and Releases
-We all know that manual deployment processes are bad for developer experience, and hopefully, we've all automated them by now (hah!). The impact on DevEx goes beyond automation though, it's possible to have automated pipelines that suck.
+Let's say you're monitoring API response times, and you get an alert when they go above 500ms. A system with good observability produces events whenever it does something, such as handling a request, performing some unit of computation, or IO. It also adds tags to those events containing rich contextual data, like the endpoint that was called, parameters, network information, and other domain specific values. If your tooling is capable of aggregating all of those events across the different dimensions (tags), you should be able to work out what is causing the spike in latency relatively easily.
 
-Inefficient pipelines are not only slow but also instil little confidence in the reliability of your deployed system. They're also impossible to run locally, and investing time in improving them generates an incredibly high return on investment over the system's lifetime.
+Now, I can't imagine anyone reading this needs much convincing that the two are linked. Good developer experience means providing a repeatable, straightforward process for debugging incidents, and that requires good observability.
 
-Slow pipelines are slow to fail, which multiplies the cost of minor mistakes. Flaky pipelines or those lacking any tests at all result in firefighting incidents, or at the very least, time wasted re-running test suites. As an SRE, one of my major frustrations stemmed from pipelines that couldn't be run locally. We've probably all experienced the absurdity of reaching "Release-31" on a new pipeline before it goes green. A practical solution to this problem is Dockerising pipelines.
+It's not just incidents that observability helps with either, it's a great tool for understanding how systems work and developer onboarding. You can use a trace to gain an accurate mental model of how a system works in minutes, opposed to days or even weeks combing through the code. That's not to say you can stop writing documentation, traces still don't tell you why a system works the way it does (ADRs, Architectural Decision Records, are great for that).
 
-We've talked about the implementation details, but it's also worth talking about release management and software delivery and its impact on DevEx. Developers want to release code. What I loved about being an SRE was identifying a problem, usually performance or reliability-related, working hard on a fix, getting the PR in, and then watching the latency or error rate graph plummet as the code got released. If I could inject that feeling into my veins I would. Now I couldn't have done that if I had to wait a month for my code to be bundled into a release, call me a child but when it comes to performance fixes delayed gratification isn't my thing. So, what enabled me to do that so quickly? Simple processes and continuous deployment. 
+Automation, Deployments, and Releases
+Another heavily SRE-related area that links to developer experience are your release and deployment processes. There's all manner of ways these can suck the life out of developers, even if they are automated.
 
-## Incidents
+Slow, or flaky pipelines are the obvious examples, even worse if it's both. Fixing these pipelines speeds up the developer workflow, prevents the frustration of having to re-run the tests to get them green, and also reduces the time it takes to resolve incidents. It's a bit of a no-brainer, but I suspect you already knew that.
+
+When it comes to developer experience, there are two things that make me irrationally angry:
+
+1. Pipelines that you can't run locally.
+
+2. Not being able to release code.
+
+If you've ever set up a pipeline from scratch, you know the absurdity of reaching something like “Release 151”  (99 of which are YAML indentation issues) before it actually goes green for the first time.  It sucks. 
+
+It also sucks when it's an existing pipeline where some check is failing, but the error isn't clear, and you've got not way of replicating it on your own machine. 
+
+There's a solution to both of these problems: Containerization. 
+
+Creating your pipeline as a multistep Docker build makes it possible to run the entire pipeline end-to-end on your local machine, and simplifies the pipeline, just call `docker run`.
+
+The second issue isn't so much an SRE issue, but a wider delivery issue, and the reason it effects developer experience is that developers like to see their code being used. 
+
+As an SRE I loved nothing more than spotting a performance issue, working hard to understand the issue and create a fix, getting the PR in, and then watching the latency or error graph plummet as the code got released. If I could inject that feeling into my veins, I would. Now I couldn't have done that if I had to wait a month for my code to be bundled into a release, call me a child but when it comes to performance fixes, delayed gratification isn't my thing. 
+
+Slow release processes can be demoralizing, and they often aren't necessary. There's little reason the vast majority of SaaS businesses can't implement continuous deployment all the way through to production.
+
+Incidents
 Hear me out: incidents can have a positive impact on developer experience.
 
-OK, so I'm not going to argue that finding out your change just broke production is a great experience and everybody should do it, but an incident gives you a chance to run a post-mortem, and this is where you can ask deep questions about your entire process to improve things for the future.
+OK, so I'm not going to argue that finding out your change just broke production is a great experience and everybody should do it. But an incident gives you a chance to run a post-mortem, and this is where you can ask deep questions about your entire process to improve things for the future.
 
-One of my favourite things to do in a post-mortem is start right at the beginning, at the early requirements gathering phase, and ask questions like "What could we have done better?", "How could we have spotted this?", "How could we prevent this?", and then iterate those questions across each phase of the development process. This makes people think beyond the surface-level problems and instead get to the real root cause. Sure, adding monitoring might help you spot issues faster, but ignoring the deeper issues like systems being hard to run locally, you'll just have another incident. You usually end up with a list of improvements that make certain processes easier, faster, or safer, which doesn't just prevent future incidents but also streamlines the process, which is the very definition of improving the developer experience.
+One of my favourite ways to conduct a post-mortem is to iterate through each phase of the software development lifecycle, and explore how we might've prevented, mitigated, or detected the incident at that phase. It forces you to look beyond the surface level issues and really “shift left”. (I should really trademark the phrase “Shift-left post-mortems”). 
 
-Of course, that list is entirely useless if you never implement any of it.
+Now to bring this back to developer experience, many incidents occur because it's hard to do something earlier on in the development lifecycle, and it's not always testing. Using the post-mortem process helps you uncover what those things are, and so long as you complete the remediation actions, improves developer experience.
 
-## Summary
+## Summary (Draft)
 
-Developer experience and engineering enablement might be trendier now, but that doesn't mean it's new. Making it easier to build, ship and operate systems is what we've been doing as an industry forever, even if we do occasionally worsen things for a bit (early days microservices anyone?). 
-Whilst I don't disagree that tools like Copilot and DevBox will improve developer productivity and the overall developer experience, I think it's important we remember the basics and get them right. You can buy all the tooling you want, but with a mountain of technical debt, systems that are horrendous to debug and work with, slow and fustrating release processes, and constant incidents that you don't take any learnings from, you're just sticking lipstick on a pig.
+It's not as catchy, but we really should rename “DevEx” to “The Developer Experience”. The addition of that single word really emphases the meaning, developer experience covers every aspect of being a developer, and there's potential for friction and frustration at every turn. 
 
+Good companies recognize this and the benefits improving it has not only on developers, but on broader organizational health. 
 
+DevEx covers everything from developer onboarding, to can improve the developer experience, and as much as some tooling vendors would like you to believe, it's not just developer onboarding. For me, it always comes back to keeping things simple and predictable (Keep it simple), ensuring your developers have the capabilities they need (such as Observability), and iterative improvement (Incidents are a perfect reflection point). 
 
-
-
-
-
-
-
+Obviously, there's more to capabilities and iterative improvement than just observability and incidents. “The Developer Experience” is a culmination of all the code, tooling, and processes that they encounter, and anything   but that was a pretty good way to wrap everything up, you have to admit.
