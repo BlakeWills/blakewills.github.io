@@ -1,6 +1,6 @@
 ---
 layout: single
-title:  "Finding anomalous events with OpenTelemetry and Azure OpenAI"
+title:  "DRAFT: Finding anomalous events with OpenTelemetry and Azure OpenAI"
 date:   2024-02-03 11:00:00 +0000
 tags: opentelemetry, openai
 classes: wide
