@@ -1,6 +1,6 @@
 ---
 layout: single
-title:  "DRAFT: Finding anomalous events with OpenTelemetry and Azure OpenAI"
+title:  "Finding anomalous events with OpenTelemetry and Azure OpenAI"
 date:   2024-02-03 11:00:00 +0000
 tags: opentelemetry, openai
 classes: wide
@@ -8,7 +8,7 @@ classes: wide
 #   og_image: /assets/img/posts/2023-12-12-devex/cover.png
 ---
 
-One of the awesome things you can do with Azure OpenAI is generate embeddings. If you `POST` some text to the embeddings API endpoint, it'll return a vector (a list of floating-point numbers) that represents the semantic meaning of the text in a multidimensional space. By computing the distance between two embedding vectors, using a measure like cosine similarity or Euclidean distance, you can compare their 'relatedness'. The shorter the distance, the more closely related the text.
+One of the awesome things you can do with Azure OpenAI is generate embeddings. If you `POST` some text to the embeddings API endpoint, it'll return a vector (a list of floating-point numbers) that represents the "meaning" of the text in a multidimensional space. Each of these dimensions represents a relationship or feature within the text. By computing the distance between two embedding vectors, using a measure like cosine similarity or Euclidean distance, you can compare their 'relatedness'. The shorter the distance, the more closely related the text.
 
 You can imagine a few use-cases for this, but something I'd like to explore is if we can use embeddings to detect anomalies in system and user behaviour, by comparing the distance between embeddings generated for OpenTelemetry traces. Traces with a short distances would indicate normal behaviour, and traces with higher distances would indicate anomalous behaviour.
 
@@ -31,14 +31,14 @@ Some important information:
 - Forecast temperature is added as a `forecast.temperatureC` tag to the `ForecastService` spans.
 - There's a bug in the `ForecastService`, causing a `KeyNotFound` exception to be thrown if the forecast temperature is above 38 degrees C.
   - ~5% of total requests are affected.
-- Request latency has baked in "jitter":
+- Request latency for the `ForecastService` has baked in "jitter":
   - UK latency is random between 0 and 100ms.
   - Everywhere else is random between 0 and 1000ms.
 
 We'll run our python test script multiple times to generate four datasets:
 1. Baseline: No anomalies.
 2. Anomaly: New user in Brazil, identified in the traces by the `user.country` tag (1/3 of all requests).
-3. Anomaly: High latency for UK requests. The random latency range is increased from 0-100ms to 0-1000ms.
+3. Anomaly: High latency for UK requests to the `ForecastService`. The random latency range is increased from 0-100ms to 0-1000ms.
 4. Anomaly: New exception type being thrown for 10% of all requests to the `ForecastService`.
 
 ## Generating Embeddings
@@ -152,7 +152,7 @@ You may have noticed we convert the traces to a custom JSON format before genera
 }
 ```
 
-There's too much code to post it in full, but I'll pull out the relevant snippets. You can follow along fully in Github. [TODO: LINK]
+There's too much code to post it in full, but I'll pull out the relevant snippets. You can follow along fully in [Github](https://github.com/BlakeWills/AzureAi-Otel/tree/main).
 
 The key part of our data loading and preparation step is actually generating the embeddings. At this point in the code we've already read our profobuf files, converted them into our own python data model and stored the results in the `traces` array. The next step is to call the `embeddings` endpoint, specifying the model we want to use (`text-embedding-ada-002`). There are three embedding models available if you call OpenAI directly, but only one in Azure OpenAI. One of the main differences between embedding models is the length of the vector they return. Larger embedding vectors can model more dimensions, in other words, they may be able to capture more "meaning" (features and relationships) from the source text. By default, the size of the `text-embedding-ada-002` vector is `1536` (meaning `1536` dimensions).
 
@@ -268,7 +268,7 @@ sns.histplot(live_high_uk_latency_df, x='max_similarity', hue='country')
 
 ![Histogram of similarity scores](/assets/img/posts/2024-02-03-otel-openai/a2_score_dist_country.png)
 
-I've included the scores for the Singapore requests, which had no additional latency compared to the baseline, to help with comparison. The shape of the UK histogram largely follows that of the Singapore histogram, indicating those scores are well within the range we'd consider 'normal', although the UK histogram does have a larger tail. This is also backed up the range of scores, for context, the range for our previous anomaly was 0.993 to 1.0, but for this anomaly the scores are all within 0.001 of each other.
+I've included the scores for the Singapore requests, which had no additional latency compared to the baseline, to help with comparison. The shape of the UK histogram largely follows that of the Singapore histogram, indicating those scores are well within the range we'd consider 'normal', although the UK histogram does have a larger tail. This is also backed up by the range of scores, for context, the range for our previous anomaly was 0.993 to 1.0, but for this anomaly the scores are all within 0.001 of each other.
 
 Now I'm not saying embeddings are entirely useless at identifying anomalies across a continuous numerical data point, but it's clear they aren't as good at this as they are spotting differences in text. That makes sense when you consider the embedding model treats these values as discrete tokens; it doesn't understand continuous values within a range. Whilst I haven't done it here, I think we'd get much better results by converting the actual duration values into a discrete set of "duration buckets".
 
@@ -299,10 +299,11 @@ Just as we expected, the scores for our new exception type (id == 1), are lower 
 
 ## Conclusion
 
-Whilst there's still a lot more work to do, I think this approach works reasonably well, there are clear clusters between the scores for normal traces and the anomalous traces. There are a few of things I'd like to try next and areas we could improve:
+I believe we've demonstrated that embeddings based approaches to anomaly detection work. We saw clear clusters between our anomalous and baseline traces, but in the real world observability systems are heavily metric driven, and as we've seen, this approach doesn't lend itself well to continuous data points. A better use-case within the realm of observability might be detecting anomalies within logs. This was still a great exercise to improve my understanding and pick up the general ideas behind embeddings, and to see what works well and what doesn't.
 
-First, I think it would be an interesting experiment to try generating embeddings per span, and then comparing those embeddings to baseline spans with the same set of labels (service, operation, etc). This may help flag the traces with the new user and an exception as an anomaly.
+If I were to repeat this exercise again, there are a few things I'd do differently. 
 
-Another interesting experiment would be calculating the similarity scores across data points with similar attributes, rather than the entire dataset. This would let us capture anomalies within the smaller subgroups, where the anomalous values might be considered normal within a different group. The high durations for UK requests were a perfect example of this, as the anomalous durations for those UK requests would be considered normal for the Singapore requests.
+First would be spending more time on data cleanliness. We saw with the new user anomaly that traces with exceptions had higher similarity scores than traces without, as the exception seemed to "drown out" the anomaly values. Since embeddings are generated on unstructured text, it's tempting to just throw all the data at the model at rely on it spotting the differences. The embedding model isn't playing spot-the-difference, rather than drawing two pictures that are 99% the same, you need to find a way to draw an entirely different picture. That means removing all static values, or values that aren't helpful in spotting an anomaly.
 
-Finally, data cleanliness matters a lot. Any approach to anomaly detection involving embeddings needs to have data free of superfluous attributes, and continuous values need conversion to discrete values, in order to better spot outliers.
+I also think it would be an interesting experiment to try generating embeddings per span, and then comparing those embeddings to baseline spans with the same set of labels (service, operation, country, etc). By reducing the amount of text per embedding, smaller changes in the data, such as changes in single attributes, should result in much lower similarity scores. Combining this with improved data cleanliness should really improve performance. 
+This would also help us capture anomalies within smaller subgroups, where the anomalous values might be considered normal within a different group. The high durations for UK requests are a perfect example of this, those high UK durations would be considered normal for Singapore.
