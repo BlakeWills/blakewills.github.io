@@ -4,8 +4,8 @@ title:  "Finding anomalous events with OpenTelemetry and Azure OpenAI"
 date:   2024-02-03 11:00:00 +0000
 tags: opentelemetry, openai
 classes: wide
-# header:
-#   og_image: /assets/img/posts/2023-12-12-devex/cover.png
+header:
+  og_image: /assets/img/posts/2024-02-03-otel-openai/a2_score_dist_country.png
 ---
 
 One of the awesome things you can do with Azure OpenAI is generate embeddings. If you `POST` some text to the embeddings API endpoint, it'll return a vector (a list of floating-point numbers) that represents the "meaning" of the text in a multidimensional space. Each of these dimensions represents a relationship or feature within the text. By computing the distance between two embedding vectors, using a measure like cosine similarity or Euclidean distance, you can compare their 'relatedness'. The shorter the distance, the more closely related the text.
