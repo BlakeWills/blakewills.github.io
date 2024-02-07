@@ -1,11 +1,11 @@
 ---
 layout: single
-title:  "Finding anomalous events with OpenTelemetry and Azure OpenAI"
-date:   2024-02-03 11:00:00 +0000
-tags: opentelemetry, openai
+title: "Finding anomalous events with OpenTelemetry and Azure OpenAI"
+date: 2024-02-03 11:00:00 +0000
+tags: opentelemetry openai
 classes: wide
 header:
-  og_image: /assets/img/posts/2024-02-03-otel-openai/og_image.png
+  og_image: /assets/img/posts/2024-02-03-otel-openai-embeddings/og_image.png
 ---
 
 One of the awesome things you can do with Azure OpenAI is generate embeddings. If you `POST` some text to the embeddings API endpoint, it'll return a vector (a list of floating-point numbers) that represents the "meaning" of the text in a multidimensional space. Each of these dimensions represents a relationship or feature within the text. By computing the distance between two embedding vectors, using a measure like cosine similarity or Euclidean distance, you can compare their 'relatedness'. The shorter the distance, the more closely related the text.
@@ -20,7 +20,7 @@ When we think of anomaly detection in observability, we typically think of machi
 
 Our test system is a simple distributed system involving three microservices instrumented with OpenTelemetry, using Tempo as the backend for storing traces. We've got a python test script that simulates two users calling our WeatherAPI 500 times in total, and then downloads the trace for each request by querying the Tempo API. Each trace is saved on disk in protobuf format so we can analyse them later.  
 
-![Architecture](/assets/img/posts/2024-02-03-otel-openai/Architecture.png)
+![Architecture](/assets/img/posts/2024-02-03-otel-openai-embeddings/Architecture.png)
 
 To make the system more closely resemble a real system, with all it's aches and pains, we've added some artificial latency and bugs that cause exceptions. This "background noise" will be present in the baseline data so we can see how well our approach works in the real world, where the baseline isn't perfect.
 
@@ -45,7 +45,7 @@ We'll run our python test script multiple times to generate four datasets:
 
 In the first stage of our anomaly detection system, we generate embeddings for each of our traces and store them, along with some labels, into a vector database (`qdrant`). We'll repeat this step for each of our datasets, storing the resulting embeddings in different collections (think tables) within the database. Here's the general flow for each data set:
 
-![Generate Embeddings Flow](/assets/img/posts/2024-02-03-otel-openai/1_GenerateEmbeddingsFlow.png)
+![Generate Embeddings Flow](/assets/img/posts/2024-02-03-otel-openai-embeddings/1_GenerateEmbeddingsFlow.png)
 
 You may have noticed we convert the traces to a custom JSON format before generating the embeddings, there are three primary reasons for this. First, we generate embeddings on text data, and protobuf is a binary data format. Second, whilst OpenTelemetry has its own JSON schema for traces, it's fairly verbose which increases costs. It's also tailored for representing spans from multiple traces, so the structure of the JSON does not represent the flow of operations through our system. Finally, we want to remove any attributes that are random by nature that we don't want to contribute to our anomaly scoring, such as `trace_id` and `span_id`. Here's an example trace converted to our JSON format:
 
@@ -236,7 +236,7 @@ Our first anomaly is the addition of a new user, flagged via the `user.country` 
 sns.histplot(live_brazil_df, x='max_similarity', hue="country")
 ```
 
-![Histogram of similarity scores](/assets/img/posts/2024-02-03-otel-openai/a1_score_dist_country.png)
+![Histogram of similarity scores](/assets/img/posts/2024-02-03-otel-openai-embeddings/a1_score_dist_country.png)
 
 We can easily see the scores for requests from the UK and Singapore have a high similarity score compared to the new requests from Brazil, which is what we expect. Oddly, there is a small subset of the Brazil requests that have a higher similarity score. Let's use a `pairplot` to discover which variable is causing the higher scores:
 
@@ -244,7 +244,7 @@ We can easily see the scores for requests from the UK and Singapore have a high 
 sns.pairplot(live_brazil_df[live_brazil_df['country'] == "Brazil"], vars=['max_similarity', 'http_res_status_code', 'forecast_temperature_c'])
 ```
 
-![Pairplot of Brazillian requests](/assets/img/posts/2024-02-03-otel-openai/a1_pairplot.png)
+![Pairplot of Brazillian requests](/assets/img/posts/2024-02-03-otel-openai-embeddings/a1_pairplot.png)
 
 Starting with the bottom left hand corner, we can see a relationship between `forecast_temperature_c` and `max_similarity`, and if we analyse the next chart up (middle left) we can see the traces with `http_res_status_code == 500` have the much higher similarity score. This explains the relationship between `forecast_temperature_c` and `max_similarity`, as all requests with a forecast temperature >= 38 throw a `KeyNotFoundException`. But why does this cause a higher similarity score? My theory here is the minor change of the `user.country` attribute had a lower weighting on requests with an exception, due to the much larger size of the overall text. In other words, a minor change in a small bit of text is noticeable, whereas a minor change in a large sea of text is not. 
 
@@ -258,7 +258,7 @@ combined_latency = pd.concat([baseline_uk, high_latency_uk])
 sns.catplot(combined_latency, x='dataset', y='duration_ms')
 ```
 
-![Chart comparing request durations between the baseline and anomaly dataset](/assets/img/posts/2024-02-03-otel-openai/a2_baseline_vs_anomaly_no_hue.png)
+![Chart comparing request durations between the baseline and anomaly dataset](/assets/img/posts/2024-02-03-otel-openai-embeddings/a2_baseline_vs_anomaly_no_hue.png)
 
 The durations for the anomaly dataset have a much higher range than the baseline dataset, so how does this translate into similarity scores?
 
@@ -266,7 +266,7 @@ The durations for the anomaly dataset have a much higher range than the baseline
 sns.histplot(live_high_uk_latency_df, x='max_similarity', hue='country')
 ```
 
-![Histogram of similarity scores](/assets/img/posts/2024-02-03-otel-openai/a2_score_dist_country.png)
+![Histogram of similarity scores](/assets/img/posts/2024-02-03-otel-openai-embeddings/a2_score_dist_country.png)
 
 I've included the scores for the Singapore requests, which had no additional latency compared to the baseline, to help with comparison. The shape of the UK histogram largely follows that of the Singapore histogram, indicating those scores are well within the range we'd consider 'normal', although the UK histogram does have a larger tail. This is also backed up by the range of scores, for context, the range for our previous anomaly was 0.993 to 1.0, but for this anomaly the scores are all within 0.001 of each other.
 
@@ -282,7 +282,7 @@ Again, we'll start with a distribution of similarity scores, this time split by 
 sns.histplot(live_unseen_exception_type_df, x='max_similarity', hue='http_res_status_code', bins=50, palette='bright')
 ```
 
-![Histogram of similarity scores by http status code](/assets/img/posts/2024-02-03-otel-openai/a3_scores_by_status_code.png)
+![Histogram of similarity scores by http status code](/assets/img/posts/2024-02-03-otel-openai-embeddings/a3_scores_by_status_code.png)
 
 Whilst the split of scores is expected, what's interesting again is the range: the minimum score (0.996) is larger than the minimum score for the new user anomaly dataset (0.993), even though the amount of "unseen text" in this dataset is considerably larger. We'll explore these differences in a future post, for now let's focus on the scores of the failed requests and split them by `excpetion_type_id`.
 
@@ -293,7 +293,7 @@ sns.histplot(errors_df, x='max_similarity', hue='error_type_id', bins=50, palett
 
 Key: `{'System.Collections.Generic.KeyNotFoundException': 0, 'System.InvalidOperationException': 1}`
 
-![Histogram of similarity scores by error type](/assets/img/posts/2024-02-03-otel-openai/a3_scores_by_error_type.png)
+![Histogram of similarity scores by error type](/assets/img/posts/2024-02-03-otel-openai-embeddings/a3_scores_by_error_type.png)
 
 Just as we expected, the scores for our new exception type (id == 1), are lower than the scores for our existing exception type (id == 0).
 
